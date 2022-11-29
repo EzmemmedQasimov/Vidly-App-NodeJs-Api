@@ -1,4 +1,6 @@
 require("express-async-errors");
+const winston = require("winston");
+require("winston-mongodb");
 const mongoose = require("mongoose");
 const genres = require("./routes/genres");
 const customers = require("./routes/customers");
@@ -9,6 +11,22 @@ const auth = require("./routes/auth");
 const express = require("express");
 const error = require("./middlewares/error");
 const app = express();
+
+process.on("uncaughtException", (ex) => {
+  winston.error(ex.message, ex);
+});
+
+winston.add(new winston.transports.File({ filename: "logfile.log" }));
+winston.add(
+  new winston.transports.MongoDB({
+    db: "mongodb://127.0.0.1:27017/vidly",
+  })
+);
+
+const p = Promise.reject(new Error("Test unhandled Promise Rejections"));
+p.then(() => {
+  console.log("Done");
+});
 
 mongoose
   .connect("mongodb://127.0.0.1:27017/vidly")
