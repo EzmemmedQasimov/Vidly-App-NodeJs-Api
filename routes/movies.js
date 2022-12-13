@@ -2,6 +2,7 @@ const { Movie, validate } = require("../models/movies");
 const { Genre } = require("../models/genres");
 const express = require("express");
 const { clearCache } = require("../services/cache");
+const cleanCash = require("../middlewares/cleanCash");
 const router = express.Router();
 
 router.get("/", async (req, res) => {
@@ -9,7 +10,7 @@ router.get("/", async (req, res) => {
   res.send(movies);
 });
 
-router.post("/", async (req, res) => {
+router.post("/", cleanCash, async (req, res) => {
   const { error } = validate(req.body);
   if (error) return res.status(400).send(error.details[0].message);
 
@@ -28,7 +29,6 @@ router.post("/", async (req, res) => {
   movie = await movie.save();
 
   res.send(movie);
-  clearCache();
 });
 
 router.put("/:id", async (req, res) => {
@@ -56,6 +56,7 @@ router.put("/:id", async (req, res) => {
     return res.status(404).send("The movie with the given ID was not found.");
 
   res.send(movie);
+  clearCache();
 });
 
 router.delete("/:id", async (req, res) => {
@@ -65,6 +66,7 @@ router.delete("/:id", async (req, res) => {
     return res.status(404).send("The movie with the given ID was not found.");
 
   res.send(movie);
+  clearCache();
 });
 
 router.get("/:id", async (req, res) => {

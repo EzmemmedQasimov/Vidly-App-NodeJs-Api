@@ -1,10 +1,12 @@
 const mongoose = require("mongoose");
 const { createClient } = require("redis");
+const winston = require("winston");
 const exec = mongoose.Query.prototype.exec;
 const client = createClient();
-// const redis = require('redis');
-// const client = redis.createClient();
-
+client.on("connect", function () {
+  winston.info("Connected to Redis!");
+});
+client.connect();
 mongoose.Query.prototype.cache = function () {
   this.useCache = true;
   return this;
@@ -16,16 +18,15 @@ mongoose.Query.prototype.exec = async function () {
   }
 
   const key = JSON.stringify(
-    Object.assign({},  {
-      collection: this.model.collection.name,
-    })
+    Object.assign(
+      {},
+      {
+        collection: this.model.collection.name,
+      }
+    )
   );
-  await client.connect();
-  console.log(key);
   const cacheValue = await client.get(key);
-//   console.log(cacheValue);
   if (cacheValue) {
-    console.log('cached');
     const doc = JSON.parse(cacheValue);
     return Array.isArray(doc)
       ? doc.map((d) => new this.model(d))
@@ -33,11 +34,9 @@ mongoose.Query.prototype.exec = async function () {
   }
 
   const result = await exec.apply(this, arguments);
-  client.set(key, JSON.stringify(result));
-  await client.disconnect();
-  console.log('mongo');
-  return result;
+  await client.set(key, JSON.stringify(result));
 
+  return result;
 };
 
 module.exports = {
